@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <conio.h>
+#include <graphics.h>
+
+#define INSIDE 0
+#define LEFT 1
+#define RIGHT 2
+#define BOTTOM 4
+#define TOP 8
+
+int regionCode(int x, int y, int xmin, int xmax, int ymin, int ymax) {
+    int code = INSIDE;
+
+    if (x < xmin)
+        code |= LEFT;
+    else if (x > xmax)
+        code |= RIGHT;
+    if (y < ymin)
+        code |= BOTTOM;
+    else if (y > ymax)
+        code |= TOP;
+
+    return code;
+}
+
+void cohenSutherland(int x1, int y1, int x2, int y2, int xmin, int xmax, int ymin, int ymax) {
+    int code1, code2, code;
+    int accept = 0, done = 0;
+
+    code1 = regionCode(x1, y1, xmin, xmax, ymin, ymax);
+    code2 = regionCode(x2, y2, xmin, xmax, ymin, ymax);
+
+    do {
+        if (!(code1 | code2)) { // If both endpoints lie inside the window
+            accept = 1;
+            done = 1;
+        } else if (code1 & code2) { // If both endpoints are outside the window and in the same region
+            done = 1;
+        } else {
+            int x, y;
+
+            code = code1 ? code1 : code2;
+
+            // Finding intersection point
+            if (code & TOP) {
+                x = x1 + (x2 - x1) * (ymax - y1) / (y2 - y1);
+                y = ymax;
+            } else if (code & BOTTOM) {
+                x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
+                y = ymin;
+            } else if (code & RIGHT) {
+                y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
+                x = xmax;
+            } else { // LEFT
+                y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
+                x = xmin;
+            }
+
+            if (code == code1) {
+                x1 = x;
+                y1 = y;
+                code1 = regionCode(x1, y1, xmin, xmax, ymin, ymax);
+            } else {
+                x2 = x;
+                y2 = y;
+                code2 = regionCode(x2, y2, xmin, xmax, ymin, ymax);
+            }
+        }
+    } while (!done);
+
+    if (accept) {
+        // Drawing the clipped line
+        setcolor(RED);
+        line(x1, y1, x2, y2);
+    }
+}
+
+int main() {
+    int gd = DETECT, gm;
+    initgraph(&gd, &gm, "C:\\TURBOC3\\BGI");
+
+    int xmin = 50, ymin = 50, xmax = 300, ymax = 200;
+    int x1 = 10, y1 = 150, x2 = 400, y2 = 20;
+
+    // Drawing the clipping window
+    rectangle(xmin, ymin, xmax, ymax);
+
+    // Drawing the original line
+    setcolor(WHITE);
+    line(x1, y1, x2, y2);
+
+    // Clipping the line using Cohen-Sutherland algorithm
+    cohenSutherland(x1, y1, x2, y2, xmin, xmax, ymin, ymax);
+
+    getch();
+    closegraph();
+
+    return 0;
+}
